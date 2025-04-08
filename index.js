@@ -1,18 +1,20 @@
-import express from "express";
-import bodyParser from "body-parser";
-import axios from "axios";
-import multer from "multer";
-import { Document } from "./models/Document.js";
+import dotenv from "dotenv";
 import { ConnectDB } from "./lib/db.js";
-import "dotenv/config";
+import app from "./app.js";
 
-const app = express();
-const port = process.env.PORT || 3000;
-app.use(bodyParser.json());
+dotenv.config({ path: ".env" });
+console.log("starting");
 
-ConnectDB();
+await ConnectDB()
+  .then(() => {
+    app.on("error", (err) => {
+      console.error("Error Occured while running the server", err);
+    });
 
-
-app.listen(port, () => {
-  console.log("port is listening");
-});
+    app.listen(process.env.PORT, () => {
+      console.log(`port is listening ${process.env.PORT}`);
+    });
+  })
+  .catch((err) => {
+    console.log("Server error", err);
+  });
