@@ -13,14 +13,13 @@ const uploadOnCloudinary = async (localFilePath) => {
     //upload file on the cloudinary
     const response = await cloudinary.uploader.upload(localFilePath, {
       resource_type: "auto",
+      folder: "vector-doc",
     });
-    //successfully uploaded unlink temp files
-    // fs.unlinkSync(localFilePath);
     console.log("File uploaded on the cloudinary", response.url);
     return response;
   } catch (err) {
-    // fs.unlinkSync(localFilePath);
-    console.log(err); // unlink the local file saved temporary on the server as upload operation got failed
+    fs.unlinkSync(localFilePath);
+    console.log(err);
     return null;
   }
 };

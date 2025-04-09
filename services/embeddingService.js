@@ -19,6 +19,6 @@ export const getEmbeddings = async (text) => {
   if (!res.data || !Array.isArray(res.data)) {
     throw new Error("Invalid response from embedding API");
   }
-  console.log("embedding from hugging face", res);
+  // console.log("embedding from hugging face", res);
   return res.data;
 };
