@@ -3,13 +3,12 @@ import { uploadOnCloudinary } from "../utils/cloudinary.js";
 import fs from "fs";
 import extract from "../utils/textExtractor.js";
 import { getEmbeddings } from "../services/embeddingService.js";
-import { resourceLimits } from "worker_threads";
 
 const calculateCosineSimilarity = (vectorA, vectorB) => {
   const dotProduct = vectorA.reduce((sum, a, i) => sum + a * vectorB[i], 0);
   const magnitudeA = Math.sqrt(vectorA.reduce((sum, a) => sum + a * a, 0));
   const magnitudeB = Math.sqrt(vectorB.reduce((sum, b) => sum + b * b, 0));
-  return dotProduct / (magnitudeA * magnitudeB);
+  return parseFloat((dotProduct / (magnitudeA * magnitudeB)).toFixed(2));
 };
 
 const ingestDocument = async (req, res) => {
@@ -99,9 +98,16 @@ const searchDocument = async (req, res) => {
       });
     }
 
+    if (page <= 0 || limit <= 0) {
+      return res.status(400).json({
+        status: 400,
+        message: "Page and limit value must be greater than 0.",
+      });
+    }
+
     //get vector embedding of search query
     const queryVector = await getEmbeddings(query);
-    console.log("query vector", queryVector);
+    // console.log("query vector", queryVector);
     if (!queryVector) {
       return res.status(400).json({
         status: 400,
@@ -125,19 +131,20 @@ const searchDocument = async (req, res) => {
         filters.createdAt.$lte = new Date(endDate);
       }
     }
+    // console.log(startDate, endDate);
 
     //calculate offset by limit and page
     const offset = (page - 1) * limit;
-    console.log(filters);
+    // console.log(filters);
     const totalDocs = await Document.countDocuments(filters);
-    console.log("total documents", totalDocs);
+    // console.log("total documents", totalDocs);
     const documents = await Document.find(filters)
       .skip(offset)
       .limit(limit)
       .select("text metadata docUrl vector")
       .lean();
 
-    console.log("documents", documents);
+    // console.log("documents", documents);
     //calculate similarity score with query
     const result = documents.map((doc) => {
       const similarityScore = calculateCosineSimilarity(
@@ -145,8 +152,9 @@ const searchDocument = async (req, res) => {
         doc.vector
       );
 
+      const { vector, ...returnDoc } = doc;
       return {
-        ...doc,
+        ...returnDoc,
         similarityScore,
       };
     });
