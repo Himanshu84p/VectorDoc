@@ -3,6 +3,7 @@ import "dotenv/config";
 
 const HF_TOKEN = process.env.HF_TOKEN;
 
+//retrieving vector data of given text using hf api
 export const getEmbeddings = async (text) => {
   const res = await axios.post(
     process.env.HF_API_URL,

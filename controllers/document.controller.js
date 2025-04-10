@@ -139,8 +139,6 @@ const searchDocument = async (req, res) => {
     const totalDocs = await Document.countDocuments(filters);
     // console.log("total documents", totalDocs);
     const documents = await Document.find(filters)
-      .skip(offset)
-      .limit(limit)
       .select("text metadata docUrl vector")
       .lean();
 
@@ -164,6 +162,9 @@ const searchDocument = async (req, res) => {
       (a, b) => b.similarityScore - a.similarityScore
     );
 
+    //paginate the final sorted result
+    const paginatedRes = sortedRes.slice(offset, limit + offset);
+
     const totalPages = Math.ceil(totalDocs / limit);
     const hasNextPage = page < totalPages;
     const hasPrevPage = page > 1;
@@ -172,7 +173,7 @@ const searchDocument = async (req, res) => {
       status: 200,
       message: "Search Success",
       data: {
-        results: sortedRes,
+        results: paginatedRes,
         pagination: {
           currentPage: parseInt(page),
           totalDocs,
@@ -193,4 +194,39 @@ const searchDocument = async (req, res) => {
   }
 };
 
-export { ingestDocument, searchDocument };
+const getDocument = async (req, res) => {
+  try {
+    const { id } = req.params;
+
+    if (!id) {
+      return res.status(400).json({
+        status: 400,
+        message: "id is required",
+      });
+    }
+
+    const document = await Document.findById(id);
+
+    if (!document) {
+      return res.status(400).json({
+        status: 400,
+        message: "No document found for this id",
+      });
+    }
+
+    return res.status(200).json({
+      status: 200,
+      message: "Document fetched successfully",
+      document,
+    });
+  } catch (error) {
+    console.log("Error in finding document", error);
+    return res.status(500).json({
+      status: 500,
+      message: "Failed to search document",
+      error,
+    });
+  }
+};
+
+export { ingestDocument, searchDocument, getDocument };
