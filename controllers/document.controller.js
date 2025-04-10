@@ -104,7 +104,8 @@ const searchDocument = async (req, res) => {
         message: "Page and limit value must be greater than 0.",
       });
     }
-
+    Number(limit);
+    Number(page);
     //get vector embedding of search query
     const queryVector = await getEmbeddings(query);
     // console.log("query vector", queryVector);
@@ -136,8 +137,6 @@ const searchDocument = async (req, res) => {
     //calculate offset by limit and page
     const offset = (page - 1) * limit;
     // console.log(filters);
-    const totalDocs = await Document.countDocuments(filters);
-    // console.log("total documents", totalDocs);
     const documents = await Document.find(filters)
       .select("text metadata docUrl vector")
       .lean();
@@ -157,13 +156,18 @@ const searchDocument = async (req, res) => {
       };
     });
 
+    //selecting doc with similarity score more than 0.20
+    const similarityRes = result.filter((doc) => doc.similarityScore > 0.2);
+
     //sorting result on similarity score
-    const sortedRes = result.sort(
+    const sortedRes = similarityRes.sort(
       (a, b) => b.similarityScore - a.similarityScore
     );
 
+    const totalDocs = similarityRes.length;
+    // console.log("total documents", totalDocs);
     //paginate the final sorted result
-    const paginatedRes = sortedRes.slice(offset, limit + offset);
+    const paginatedRes = sortedRes.slice(offset, offset + limit);
 
     const totalPages = Math.ceil(totalDocs / limit);
     const hasNextPage = page < totalPages;
@@ -180,7 +184,7 @@ const searchDocument = async (req, res) => {
           totalPages,
           hasNextPage,
           hasPrevPage,
-          limit: limit,
+          limit: parseInt(limit),
         },
       },
     });
